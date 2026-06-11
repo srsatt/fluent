@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fluent_paths import data_dir, ensure_data_dir, force_utf8_io  # noqa: E402
-from fluent_storage import load_documents  # noqa: E402
+from rss_settings import load_stt_settings  # noqa: E402
 
 force_utf8_io()
 
@@ -26,11 +26,7 @@ def _slug(value: str) -> str:
 
 
 def _config() -> dict:
-    docs, missing, _backend = load_documents()
-    if missing:
-        return {}
-    profile = docs.get("learner_profile", {})
-    return profile.get("preferences", {}).get("rss", {}).get("transcription", {})
+    return load_stt_settings()
 
 
 def _download(url: str, target_dir: Path, output_id: str) -> Path:
@@ -111,7 +107,7 @@ def transcribe(args: argparse.Namespace) -> dict:
             raise FileNotFoundError(media_path)
 
     ffmpeg = args.ffmpeg if args.ffmpeg is not None else config.get("ffmpeg", "ffmpeg")
-    audio_path = _convert_if_needed(media_path, ffmpeg, media_dir)
+    audio_path = media_path if args.dry_run else _convert_if_needed(media_path, ffmpeg, media_dir)
     output_base = transcript_dir / _slug(output_id)
     command = _build_command(args, audio_path, output_base)
 

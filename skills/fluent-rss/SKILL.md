@@ -45,7 +45,7 @@ Optional transcription settings:
 
 Do not guess local paths. If the learner is unsure, store the feed first and leave transcription disabled or incomplete.
 
-### 3. Save RSS preferences
+### 3. Save RSS preferences and STT settings
 
 Call the setup helper from the repo root:
 
@@ -71,7 +71,7 @@ python3 scripts/rss-setup.py <<'EOF'
 EOF
 ```
 
-The helper updates `learner-profile.preferences.rss` through the storage adapter and keeps SQL/JSON mirrors consistent.
+The helper stores feed URLs in `learner-profile.preferences.rss` through the storage adapter and keeps SQL/JSON mirrors consistent. It stores machine-local transcription settings in `<data_dir>/rss-stt-settings.json`, not in SQL, because binary/model paths are user-machine configuration.
 
 ### 4. Verify preview access
 
@@ -94,6 +94,7 @@ Need:
 - `learner-profile.learner.target_language`
 - `learner-profile.learner.current_level`
 - `learner-profile.preferences.rss.feeds`
+- `<data_dir>/rss-stt-settings.json` for whisper.cpp transcription settings, when needed
 - due reviews and weak patterns, if present
 
 If no RSS feeds are configured, ask the learner to run `/fluent-rss setup`.
@@ -206,5 +207,6 @@ Call `fluent-db-updater` once:
 - Always let the learner choose the item from the RSS preview.
 - Do not reveal the full transcript before initial gist/detail attempts.
 - Do not transcribe large or paid/private media without learner confirmation.
-- Keep RSS feed preferences in `learner-profile.preferences.rss`; do not invent a separate data store.
+- Keep RSS feed URLs in `learner-profile.preferences.rss`.
+- Keep whisper.cpp/STT binary and model paths in `<data_dir>/rss-stt-settings.json`; do not store machine-local executable paths in SQL.
 - Use helper scripts for setup, preview, and transcription; use `update-db.py` only once at session end.

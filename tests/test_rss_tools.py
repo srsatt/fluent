@@ -60,7 +60,10 @@ class RssToolsTest(unittest.TestCase):
         profile = json.loads((self.data_dir / "learner-profile.json").read_text())
         rss = profile["preferences"]["rss"]
         self.assertEqual(rss["feeds"][0]["url"], "https://example.com/podcast.xml")
-        self.assertEqual(rss["transcription"]["provider"], "whisper.cpp")
+        self.assertNotIn("transcription", rss)
+        stt = json.loads((self.data_dir / "rss-stt-settings.json").read_text())
+        self.assertEqual(stt["provider"], "whisper.cpp")
+        self.assertEqual(stt["model"], "/tmp/ggml-test.bin")
 
     def test_rss_preview_reads_local_media_feed(self):
         feed = self.tmp / "feed.xml"

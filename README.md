@@ -105,7 +105,7 @@ python3 scripts/update-db.py
 ```
 
 The helper boundary is intentional. Prompts and skills use the same API whether the backend is SQL or JSON.
-RSS feed preferences are stored under `learner-profile.json` preferences by `scripts/rss-setup.py`; media previews and transcripts use `scripts/rss-preview.py` and `scripts/rss-transcribe.py`.
+RSS feed subscriptions are stored under `learner-profile.json` preferences by `scripts/rss-setup.py`; machine-local STT settings are stored in `rss-stt-settings.json` in the active data directory. Media previews and transcripts use `scripts/rss-preview.py` and `scripts/rss-transcribe.py`.
 
 ### Data Directory Resolution
 

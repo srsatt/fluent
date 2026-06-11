@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Store Fluent RSS study preferences in the learner profile."""
+"""Store Fluent RSS feeds and user-machine STT settings."""
 from __future__ import annotations
 
 import argparse
@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fluent_paths import ensure_backups_dir, force_utf8_io  # noqa: E402
 from fluent_storage import load_documents, save_documents, storage_files_for_backup  # noqa: E402
+from rss_settings import load_stt_settings, save_stt_settings, stt_settings_path  # noqa: E402
 
 force_utf8_io()
 
@@ -53,7 +54,7 @@ def _normalize_feeds(raw_feeds: list[dict]) -> list[dict]:
 
 def _normalize_transcription(raw: dict | None) -> dict:
     if raw is None:
-        return {"enabled": False}
+        return load_stt_settings()
     if not isinstance(raw, dict):
         raise ValueError("'transcription' must be an object")
 
@@ -95,9 +96,15 @@ def current_config() -> dict:
         raise FileNotFoundError(", ".join(missing))
     profile = docs.get("learner_profile", {})
     prefs = profile.get("preferences", {})
+    rss = prefs.get("rss", {"feeds": []})
     return {
         "backend": backend,
-        "rss": prefs.get("rss", {"feeds": [], "transcription": {"enabled": False}}),
+        "rss": {
+            "feeds": rss.get("feeds", []),
+            "updated_at": rss.get("updated_at"),
+        },
+        "transcription": load_stt_settings(),
+        "transcription_path": str(stt_settings_path()),
     }
 
 
@@ -110,7 +117,6 @@ def save_config(payload: dict) -> dict:
     transcription = _normalize_transcription(payload.get("transcription"))
     rss_config = {
         "feeds": feeds,
-        "transcription": transcription,
         "updated_at": datetime.now().isoformat(timespec="seconds"),
     }
 
@@ -118,7 +124,13 @@ def save_config(payload: dict) -> dict:
     profile.setdefault("preferences", {})["rss"] = rss_config
     _backup(f"pre-rss-setup-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
     saved_backend = save_documents(docs)
-    return {"backend": saved_backend or backend, "rss": rss_config}
+    stt_path = save_stt_settings(transcription)
+    return {
+        "backend": saved_backend or backend,
+        "rss": rss_config,
+        "transcription": transcription,
+        "transcription_path": str(stt_path),
+    }
 
 
 def main() -> int:
