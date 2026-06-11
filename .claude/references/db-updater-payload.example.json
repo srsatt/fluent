@@ -1,5 +1,5 @@
 {
-  "_comment": "Canonical example payload for .claude/hooks/update-db.py. Only session_id and date are required. Every other field is optional — omit to skip.",
+  "_comment": "Canonical example payload for scripts/update-db.py. Only session_id and date are required. Every other field is optional — omit to skip.",
 
   "session_id": "session-005",
   "date": "2026-04-24",

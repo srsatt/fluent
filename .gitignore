@@ -1,6 +1,9 @@
 # Personal learning data - DO NOT commit
 /data/*.json
 /data/*.json.backup-*
+/data/*.sqlite
+/data/*.sqlite-*
+/data/*.tsv
 /results/*.md
 # Except the README files which explain the structure
 !/data/README.md
@@ -39,4 +42,3 @@ npm-debug.log*
 .tmp/
 temp/
 *.json.tmp
-

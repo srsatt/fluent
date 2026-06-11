@@ -43,7 +43,7 @@
           {
             "type": "command",
             "description": "Safety backup before conversation compaction",
-            "command": "mkdir -p \"$CLAUDE_PROJECT_DIR\"/.backups/precompact && cp -r \"$CLAUDE_PROJECT_DIR\"/data/*.json \"$CLAUDE_PROJECT_DIR\"/.backups/precompact/ 2>/dev/null && echo '[Fluent] 🔒 Pre-compact backup saved'",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/precompact-backup.sh",
             "timeout": 10
           }
         ]
@@ -59,7 +59,7 @@
         "trigger": "After Write/Edit operations on data files",
         "actions": [
           "Creates timestamped backup of modified file",
-          "Validates JSON structure",
+          "Validates JSON structure when the JSON backend or mirror files are edited",
           "Shows error if JSON is malformed"
         ],
         "script": ".claude/hooks/validate-data.py"
@@ -95,7 +95,7 @@
       "precompact_backup": ".backups/precompact/"
     },
     "features": [
-      "Automatic JSON validation on every save",
+      "Automatic JSON validation for JSON backend/mirror files",
       "Timestamped backups prevent data loss",
       "Session stats displayed on start/end",
       "Due review notifications",

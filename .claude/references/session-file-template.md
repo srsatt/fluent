@@ -100,6 +100,6 @@ Do not rename these headings or reorder sections. Changes break the analyzer.
 
 ## Interaction with databases
 
-Session files are **markdown narrative**. JSON databases (`mistakes-db.json`, `mastery-db.json`) hold aggregated counts and SM-2 state. Both must be updated — the markdown records the story, the JSON records the numbers.
+Session files are **markdown narrative**. The learner stores hold aggregated counts and SM-2 state. Both must be updated — the markdown records the story, the stores record the numbers.
 
-Call `.claude/hooks/update-db.py` once at session end with a full payload (see `db-updater-payload.example.json`). The script handles the JSON side; the practice skill handles the markdown side. The `fluent-db-updater` skill documents the payload schema.
+Call `scripts/update-db.py` once at session end with a full payload (see `db-updater-payload.example.json`). The script handles persisted learner state; the practice skill handles the markdown side. The `fluent-db-updater` skill documents the payload schema.

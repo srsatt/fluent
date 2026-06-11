@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Smoke test for .claude/hooks/update-db.py.
+Smoke test for scripts/update-db.py.
 
 Runs the script against a fresh fixture DB in a temp dir, feeds it a sample
 session report, and asserts schema invariants on the output files.
@@ -18,7 +18,7 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPT = REPO_ROOT / ".claude" / "hooks" / "update-db.py"
+SCRIPT = REPO_ROOT / "scripts" / "update-db.py"
 
 
 def make_fixtures(data_dir: Path):
@@ -153,12 +153,16 @@ class UpdateDbSmokeTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def _run(self, payload: dict):
+    def _run(self, payload: dict, env: dict | None = None):
+        proc_env = os.environ.copy()
+        if env:
+            proc_env.update(env)
         proc = subprocess.run(
             ["python3", str(SCRIPT)],
             input=json.dumps(payload).encode(),
             cwd=str(self.tmp),
             capture_output=True,
+            env=proc_env,
         )
         return proc
 
@@ -220,6 +224,8 @@ class UpdateDbSmokeTest(unittest.TestCase):
         # with other plugins when the global fallback ~/.claude/fluent-data is used).
         backup = self.tmp / "data" / ".backups" / "pre-update-session-002"
         self.assertTrue(backup.exists(), "pre-update backup missing")
+        self.assertTrue((self.tmp / "data" / "fluent.sqlite").exists(),
+                        "default SQL backend did not create fluent.sqlite")
 
     def test_missing_required_field_exits_1(self):
         proc = self._run({"date": "2026-04-24"})  # no session_id
@@ -235,6 +241,13 @@ class UpdateDbSmokeTest(unittest.TestCase):
         with open(self.tmp / "data" / "learner-profile.json") as f:
             profile = json.load(f)
         self.assertEqual(profile["current_streak_days"], 2)
+
+    def test_json_backend_does_not_create_sqlite(self):
+        payload = dict(SESSION_PAYLOAD)
+        payload["session_id"] = "session-json"
+        proc = self._run(payload, env={"FLUENT_DB": "json"})
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        self.assertFalse((self.tmp / "data" / "fluent.sqlite").exists())
 
 
 if __name__ == "__main__":

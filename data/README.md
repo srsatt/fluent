@@ -1,133 +1,44 @@
 # Data Directory
 
-This directory contains your personal learning data in JSON format.
+This directory is intentionally empty in git. `/fluent-setup` creates private learner data here when you use Fluent from a clone.
 
-## 🚀 Getting Started
+## Runtime Stores
 
-**This directory is empty by design!**
+- `learner-profile.json` - learner name, languages, goals, preferences, streak
+- `progress-db.json` - statistics and trends
+- `mistakes-db.json` - recurring error patterns and examples
+- `mastery-db.json` - skill and pattern mastery
+- `spaced-repetition.json` - SM-2 review items and queues
+- `session-log.json` - session history
 
-When you run `/fluent-setup` for the first time, the system will automatically create:
+Agents should use `scripts/read-db.py` and `scripts/update-db.py` rather than editing stores directly during lessons.
 
-- `learner-profile.json` - Your name, target language, level, goals
-- `progress-db.json` - Overall statistics and trends
-- `mistakes-db.json` - Error patterns you're working on
-- `mastery-db.json` - Skill mastery levels (0-5 stars)
-- `spaced-repetition.json` - Review schedule (SM-2 algorithm)
-- `session-log.json` - Complete session history
+## Private by Default
 
-## 🔒 Privacy
+The repo ignores:
 
-**All files in this directory are private!**
+- `data/*.json`
+- JSON backups
+- SQLite mirrors
+- Anki TSV exports
+- generated result files
 
-- ✅ Listed in `.gitignore` - Won't be committed to git
-- ✅ Stays on your machine - No external sync
-- ✅ Automatically backed up - See `.backups/` directory
-- ✅ Human-readable JSON - Easy to export/analyze
+All data stays on your machine unless you explicitly export or sync it.
 
-## 📊 File Structure
+## Optional Exports
 
-### learner-profile.json
-Contains your basic information and preferences:
-```json
-{
-  "learner": {
-    "name": "Your Name",
-    "target_language": "Spanish",
-    "current_level": "A2",
-    "target_level": "B2"
-  },
-  "current_streak_days": 0,
-  "skills": {...}
-}
+SQLite mirror:
+
+```bash
+python3 scripts/sqlite-store.py export --db data/fluent.sqlite
 ```
 
-### progress-db.json
-Tracks your statistics over time:
-```json
-{
-  "overall_stats": {
-    "total_exercises": 0,
-    "total_correct": 0,
-    "accuracy_rate": 0
-  },
-  "accuracy_trend": []
-}
+Anki TSV:
+
+```bash
+python3 scripts/anki-sync.py export-tsv --output data/fluent-anki.tsv
 ```
 
-### mistakes-db.json
-Records error patterns with examples:
-```json
-{
-  "error_patterns": {
-    "pattern_name": {
-      "frequency": 0,
-      "mastery_level": 0,
-      "examples": []
-    }
-  }
-}
-```
+## Reset
 
-### mastery-db.json
-Tracks mastery levels for each skill:
-```json
-{
-  "skills": {
-    "writing": {"mastery_level": 0},
-    "speaking": {"mastery_level": 0},
-    "vocabulary": {"mastery_level": 0}
-  }
-}
-```
-
-### spaced-repetition.json
-Manages review scheduling (SM-2 algorithm):
-```json
-{
-  "review_queue": {
-    "today": [],
-    "tomorrow": [],
-    "this_week": [],
-    "later": []
-  }
-}
-```
-
-### session-log.json
-Complete history of all practice sessions:
-```json
-{
-  "sessions": [
-    {
-      "id": "001",
-      "date": "2025-11-17",
-      "duration_minutes": 30,
-      "accuracy": 0.85
-    }
-  ]
-}
-```
-
-## 🔄 How It Works
-
-1. **First time:** Run `/fluent-setup` to create your profile
-2. **Every session:** Files update automatically as you practice
-3. **Backup:** Automatic backups to `.backups/` via hooks
-4. **Export:** All data is JSON - easy to analyze or migrate
-
-## 📁 Data Examples
-
-Want to see the structure before running `/fluent-setup`?
-
-Check the `/data-examples` directory for template files with the complete schema.
-
-## ⚠️ Important Notes
-
-- **Never edit these files manually** - Let the system manage them
-- **Don't delete while learning** - You'll lose your progress!
-- **To reset:** Delete all `.json` files and run `/fluent-setup` again
-- **To backup:** Copy entire `/data` directory
-
----
-
-**Ready to start?** Run `/fluent-setup` to begin your language learning journey! 🚀
+To start over, back up this directory, delete the generated data files, and run `/fluent-setup` again.

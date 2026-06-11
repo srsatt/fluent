@@ -1,6 +1,6 @@
 # SM-2 Worked Examples
 
-Reference for the `fluent-sm2-calculator` skill. Each example shows input state, score, computed output. Useful for implementing SM-2 by hand when `.claude/hooks/update-db.py` is unavailable.
+Reference for the `fluent-sm2-calculator` skill. Each example shows input state, score, computed output. Useful for implementing SM-2 by hand when `scripts/update-db.py` is unavailable.
 
 ## Formula (quick)
 
