@@ -25,6 +25,8 @@ Skip this skill in favor of `/fluent-vocab` if the learner has not yet hit maste
 python3 scripts/read-db.py
 ```
 
+Prefer MCP tool `fluent_read_state`; use the command above only as fallback.
+
 Need: `learner-profile` (level, target language, focus areas), `mistakes-db` (weak writing patterns), `mastery-db` (writing sub-skills).
 
 ### 2. Pick scenario type
@@ -147,14 +149,15 @@ Type "rewrite" to try again, or "next" to continue.
 
 ### 9. Update all databases
 
-Use the `fluent-db-updater` skill:
+Call MCP tool `fluent_update_session` once with:
 
 - `command_used: "/fluent-writing"`, `skills_practiced: ["writing"]`
 - `skill_scores.writing: {exercises: 1, correct: 1_if_score_≥_7_else_0, time_minutes}`
 - `errors[]` — one per distinct pattern found (dedupe; the script bumps frequency)
+- `exercises[]` — full task, learner text, corrected version, feedback, and score
 - `focus_next_session[]` — top 2 patterns to drill
 
-Also save the exchange as `/results/fluent-writing-session-{NNN}.md` with the full task, the learner's original text, the corrected version, and the error table. The `fluent-session-analyzer` skill depends on this format.
+Fallback: call `python3 scripts/update-db.py` once with the same payload.
 
 ## Examples
 
@@ -217,7 +220,7 @@ Learner: "Hallo, Ik schrijf je omdat ik kan niet komen op donderdag. Ik ben ziek
 - **One scenario per session.** Don't chain multiple writing tasks — depth over breadth.
 - **Wait for the full answer** before correcting.
 - **Severity tagging is mandatory.** Fed into `mistakes-db` and drives spaced repetition priority.
-- **Always save the session file** in `/results/` for later analysis by `fluent-session-analyzer`.
+- **Always include useful exchange detail** in `exercises[]` for later analysis by `fluent-session-analyzer`.
 - **Never auto-invoke.** This skill is gated; must fire only on explicit `/fluent-writing`.
 
 ## Language Reference

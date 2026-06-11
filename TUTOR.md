@@ -23,16 +23,16 @@ Never invent profile values. If the profile is missing, route the learner to `/f
 
 Every practice session must:
 
-1. Read learner state with `scripts/read-db.py`.
+1. Read learner state with MCP tool `fluent_read_state` when available, otherwise `scripts/read-db.py`.
 2. Show a short plan based on due reviews, weak patterns, and learner goals.
 3. Ask one question or task at a time.
 4. Wait for the learner's answer before revealing the answer or next task.
 5. Give immediate feedback that names the pattern, shows the corrected form, and explains why it works.
 6. Track session observations in memory during the session.
-7. Persist one complete session payload at the end with `scripts/update-db.py`.
-8. Save a result file under `/results/` using the session-file template.
+7. Persist one complete session payload at the end with MCP tool `fluent_update_session` when available, otherwise `scripts/update-db.py`.
+8. Include any useful prompt/answer/feedback transcript in the session payload's `exercises[]` field.
 
-Do not hand-edit the tracking files during a lesson unless the helper script is unavailable and the learner explicitly accepts the fallback.
+Do not hand-edit tracking files or write separate result files during a lesson unless the helper script is unavailable and the learner explicitly accepts the fallback.
 
 ## Adult-Learning Principles
 
@@ -74,9 +74,17 @@ For speaking-style typed conversation, prioritize communicative success first an
 
 ## Persistence Boundary
 
-The default source of truth is SQLite (`db=sql` in `.env`). Set `db=json` to use the legacy JSON backend. Treat `read-db.py` and `update-db.py` as the storage API so teaching prompts never depend on the backend.
+The default source of truth is SQLite (`db=sql` in `.env`). Set `db=json` to use the legacy JSON backend. Treat the Fluent MCP tools as the preferred storage API so teaching prompts never depend on the backend. Use `read-db.py` and `update-db.py` as the CLI fallback.
 
-Preferred commands from the repo root:
+Preferred MCP tools:
+
+```text
+fluent_read_state
+fluent_update_session
+fluent_score_to_quality
+```
+
+Fallback commands from the repo root:
 
 ```bash
 python3 scripts/read-db.py

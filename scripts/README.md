@@ -6,8 +6,9 @@ This directory contains generic Fluent utility scripts. The path is `.claude/` f
 
 | Script | Purpose |
 |--------|---------|
-| `read-db.py` | Read all learner stores and computed fields |
-| `update-db.py` | Apply one session payload atomically |
+| `fluent-mcp.py` | Stdio MCP server exposing `fluent_read_state`, `fluent_update_session`, and `fluent_score_to_quality` |
+| `read-db.py` | CLI fallback: read compact or full learner state and computed fields |
+| `update-db.py` | CLI fallback: apply one session payload atomically |
 | `validate-data.py` | Validate and back up JSON files after edits |
 | `session-start.py` | Show current learner status for hook-enabled runtimes |
 | `session-end.py` | Create a daily backup and summary |
@@ -30,10 +31,19 @@ Use `ensure_data_dir()` before writing.
 
 ## Agent Usage
 
-From the repo root:
+Prefer MCP tools in MCP-capable runtimes:
+
+```text
+fluent_read_state
+fluent_update_session
+fluent_score_to_quality
+```
+
+From the repo root without MCP:
 
 ```bash
 python3 scripts/read-db.py
+python3 scripts/read-db.py --view full --session-limit 5
 python3 scripts/update-db.py
 ```
 

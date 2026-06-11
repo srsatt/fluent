@@ -25,6 +25,8 @@ Skip this skill the very first time a learner runs the system — route to `/flu
 python3 scripts/read-db.py
 ```
 
+Prefer MCP tool `fluent_read_state`; use the command above only as fallback.
+
 Need all 6 DBs. If any missing, direct the learner to `/fluent-setup` and stop.
 
 ### 2. Analyze today's plan
@@ -51,20 +53,21 @@ Need all 6 DBs. If any missing, direct the learner to `/fluent-setup` and stop.
 1. 📝 Writing (emails, letters, forms)
 2. 🗣️ Speaking (typed conversation)
 3. 📖 Vocabulary (flashcard drills)
-4. 👀 Reading (comprehension)
-5. 🔄 Spaced Review (today's due items)
-6. 🎧 RSS Media (real audio/video)
-7. 🎲 Surprise me! (adaptive mix)
+4. 🧩 Grammar concepts (discover one rule)
+5. 👀 Reading (comprehension)
+6. 🔄 Spaced Review (today's due items)
+7. 🎧 RSS Media (real audio/video)
+8. 🎲 Surprise me! (adaptive mix)
 
 **Type a number or skill name:**
 ```
 
 ### 4. Route
 
-- 1-6 → hand off to the matching skill (`fluent-writing`, `fluent-speaking`, `fluent-vocab`, `fluent-reading`, `fluent-review`, `fluent-rss`). Those skills cover everything needed; this skill's job here is just to dispatch.
-- 7 (adaptive mix) → use this skill's own exercise sequencer (below).
+- 1-7 → hand off to the matching skill (`fluent-writing`, `fluent-speaking`, `fluent-vocab`, `fluent-conceptualisation`, `fluent-reading`, `fluent-review`, `fluent-rss`). Those skills cover everything needed; this skill's job here is just to dispatch.
+- 8 (adaptive mix) → use this skill's own exercise sequencer (below).
 
-### 5. Adaptive mix (option 7)
+### 5. Adaptive mix (option 8)
 
 Plan a 20-min session around a real adult task whenever possible:
 
@@ -143,15 +146,16 @@ Now type the correct version yourself: "{correct_sentence}"
 {goodbye in target language}! 👏
 ```
 
-Then use the `fluent-db-updater` skill:
+Call MCP tool `fluent_update_session` once with:
 
 - `command_used: "/fluent-learn"`
 - `skills_practiced: [all skills touched]`
 - `skill_scores` per skill
 - `errors[]`, `new_vocabulary[]`, `review_results[]`
 - `breakthroughs[]`, `focus_next_session[]`, `session_notes`
+- `exercises[]` with useful prompt, learner answer, correction, feedback, and score entries
 
-Save exchange to `/results/fluent-learn-session-{NNN}.md`.
+Fallback: call `python3 scripts/update-db.py` once with the same payload.
 
 If the session produced several useful vocabulary items, mention that `/fluent-anki-sync` can export them to Anki. Do not sync automatically.
 
@@ -172,10 +176,11 @@ If the session produced several useful vocabulary items, mention that `/fluent-a
 > 1. 📝 Writing (emails, letters, forms)
 > 2. 🗣️ Speaking (typed conversation)
 > 3. 📖 Vocabulary (flashcard drills)
-> 4. 👀 Reading (comprehension)
-> 5. 🔄 Spaced Review (today's due items)
-> 6. 🎧 RSS Media (real audio/video)
-> 7. 🎲 Surprise me! (adaptive mix)
+> 4. 🧩 Grammar concepts (discover one rule)
+> 5. 👀 Reading (comprehension)
+> 6. 🔄 Spaced Review (today's due items)
+> 7. 🎧 RSS Media (real audio/video)
+> 8. 🎲 Surprise me! (adaptive mix)
 >
 > **Type a number or skill name:**
 
@@ -197,7 +202,7 @@ After 4 exercises, accuracy is 55% (target zone). Hold difficulty; introduce pat
 - **Always load all 6 DBs at start.** Missing context → generic, demotivating content.
 - **One exercise at a time.**
 - **Interleave.** Don't drill one pattern for 20 min — mix 2-3 patterns to force discrimination.
-- **Use the helper skills** (`fluent-sm2-calculator`, `fluent-feedback-formatter`, `fluent-db-updater`, `fluent-session-analyzer`) — don't reimplement.
+- **Use the helper skill** `fluent-feedback-formatter`, the planning helper `fluent-session-analyzer`, and the Fluent MCP persistence tools — don't reimplement.
 - **Use the learner's name + target-language greetings** where natural.
 - **Celebrate progress.** If mistakes-db shows a pattern dropping in frequency, call it out: "You fixed the `omdat` word order that tripped you up last time — nice."
 

@@ -140,6 +140,13 @@ SESSION_PAYLOAD = {
     "breakthroughs": ["Got 'het huis' on first try"],
     "focus_next_session": ["de/het drill"],
     "session_notes": "Good session.",
+    "exercises": [{
+        "prompt": "Translate: the house",
+        "learner_answer": "het huis",
+        "correct_answer": "het huis",
+        "score": 10,
+        "feedback": "Correct."
+    }],
     "milestones": []
 }
 
@@ -182,6 +189,7 @@ class UpdateDbSmokeTest(unittest.TestCase):
         self.assertIn("breakthroughs", latest)
         self.assertIn("focus_next_session", latest)
         self.assertIn("achievements_earned", latest)
+        self.assertEqual(latest["exercises"][0]["learner_answer"], "het huis")
         self.assertEqual(latest["streak_day"], 3)  # was 2, yesterday -> +1
 
         with open(self.tmp / "data" / "learner-profile.json") as f:

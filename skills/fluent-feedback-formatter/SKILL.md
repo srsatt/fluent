@@ -7,7 +7,7 @@ description: Canonical feedback template for every learner answer in the Fluent 
 
 ## Overview
 
-Every practice session ends each turn with immediate feedback. Consistency matters — the learner builds mental models from the structure, and error patterns we mine from session files depend on predictable markers (❌, ✅, severity emoji). This skill defines the single feedback shape used across all Fluent practice skills.
+Every practice session ends each turn with immediate feedback. Consistency matters — the learner builds mental models from the structure, and error patterns stored in `exercises[]` depend on predictable markers (❌, ✅, severity emoji). This skill defines the single feedback shape used across all Fluent practice skills.
 
 ## When to Use
 
@@ -72,7 +72,7 @@ These feed `mistakes-db.json`:
 
 ### 5. Hand score to SM-2
 
-After scoring, feed the score into the SM-2 update via the `fluent-sm2-calculator` skill: `quality = floor(score / 2)`.
+After scoring, feed the score into the SM-2 update by calling MCP tool `fluent_score_to_quality`.
 
 ## Examples
 
@@ -94,5 +94,5 @@ Quick pattern:
 
 Structured, consistent feedback:
 1. Lets the learner scan for what to fix at a glance.
-2. Makes session files parseable so `PRACTICE.md` analysis + `/results` mining work.
+2. Makes stored exercise feedback parseable so `PRACTICE.md` analysis and session-log mining work.
 3. Populates mistake categories cleanly — which feeds spaced repetition and lesson planning.

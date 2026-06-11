@@ -451,6 +451,10 @@ def update_session_log(log: dict, session: dict, streak: int):
         entry["exam_focus"] = session["exam_focus"]
     if session.get("critical_errors_identified"):
         entry["critical_errors_identified"] = session["critical_errors_identified"]
+    if session.get("exercises"):
+        entry["exercises"] = session["exercises"]
+    if session.get("transcript_refs"):
+        entry["transcript_refs"] = session["transcript_refs"]
 
     log.setdefault("sessions", []).append(entry)
 
@@ -464,6 +468,73 @@ def update_session_log(log: dict, session: dict, streak: int):
     log.setdefault("metadata", {})["total_sessions"] = len(log["sessions"])
 
 
+def apply_session_update(session: dict) -> dict:
+    """Apply one session payload atomically and return a machine-readable summary."""
+    for field in ("session_id", "date"):
+        if field not in session:
+            raise ValueError(f"Missing required field '{field}'")
+
+    session.setdefault("duration_minutes", 0)
+
+    docs, missing, backend = load_documents()
+    if missing:
+        raise FileNotFoundError(", ".join(missing))
+    originals = {
+        "profile": docs["learner_profile"],
+        "progress": docs["progress_db"],
+        "mistakes": docs["mistakes_db"],
+        "mastery": docs["mastery_db"],
+        "sr": docs["spaced_repetition"],
+        "log": docs["session_log"],
+    }
+
+    # Work on deep copies so a mid-run exception leaves disk untouched.
+    data = {k: copy.deepcopy(v) for k, v in originals.items()}
+
+    update_learner_profile(data["profile"], session)
+    update_progress_db(data["progress"], session)
+    update_mistakes_db(data["mistakes"], session)
+    update_mastery_db(data["mastery"], session, data["progress"])
+    update_spaced_repetition(data["sr"], session)
+    streak = data["profile"].get("current_streak_days", 0)
+    update_session_log(data["log"], session, streak)
+
+    # Backup originals BEFORE writing new state.
+    backup_all(f"pre-update-{session['session_id']}")
+
+    save_documents({
+        "learner_profile": data["profile"],
+        "progress_db": data["progress"],
+        "mistakes_db": data["mistakes"],
+        "mastery_db": data["mastery"],
+        "spaced_repetition": data["sr"],
+        "session_log": data["log"],
+    })
+
+    stats = data["progress"]["overall_stats"]
+    sr_tomorrow = len(data["sr"]["review_queue"].get("tomorrow", []))
+    skill_scores = session.get("skill_scores", {})
+    total_ex = sum(s.get("exercises", 0) for s in skill_scores.values())
+    total_cor = sum(s.get("correct", 0) for s in skill_scores.values())
+
+    return {
+        "session_id": session["session_id"],
+        "backend": backend,
+        "sqlite_path": str(sqlite_db_path()) if backend == "sql" else None,
+        "streak": streak,
+        "total_sessions": stats["total_sessions"],
+        "total_study_minutes": stats["total_study_minutes"],
+        "session_correct": total_cor,
+        "session_exercises": total_ex,
+        "session_accuracy": round(total_cor / total_ex, 3) if total_ex > 0 else 0.0,
+        "overall_accuracy": stats["accuracy_rate"],
+        "total_exercises": stats["total_exercises"],
+        "spaced_repetition_items": data["sr"]["metadata"]["total_items_tracked"],
+        "due_tomorrow": sr_tomorrow,
+        "error_patterns_tracked": data["mistakes"]["metadata"]["total_patterns_tracked"],
+    }
+
+
 # --- Main ---
 
 def main():
@@ -473,80 +544,28 @@ def main():
         print(f"[Fluent] Error: Invalid JSON input: {e}", file=sys.stderr)
         sys.exit(1)
 
-    for field in ("session_id", "date"):
-        if field not in session:
-            print(f"[Fluent] Error: Missing required field '{field}'", file=sys.stderr)
-            sys.exit(1)
-
-    session.setdefault("duration_minutes", 0)
-
     try:
-        docs, missing, backend = load_documents()
-        if missing:
-            raise FileNotFoundError(", ".join(missing))
-        originals = {
-            "profile": docs["learner_profile"],
-            "progress": docs["progress_db"],
-            "mistakes": docs["mistakes_db"],
-            "mastery": docs["mastery_db"],
-            "sr": docs["spaced_repetition"],
-            "log": docs["session_log"],
-        }
-    except Exception as e:
-        print(f"[Fluent] Error loading learner stores: {e}", file=sys.stderr)
-        sys.exit(2)
-
-    # Work on deep copies so a mid-run exception leaves disk untouched.
-    data = {k: copy.deepcopy(v) for k, v in originals.items()}
-
-    try:
-        update_learner_profile(data["profile"], session)
-        update_progress_db(data["progress"], session)
-        update_mistakes_db(data["mistakes"], session)
-        update_mastery_db(data["mastery"], session, data["progress"])
-        update_spaced_repetition(data["sr"], session)
-        streak = data["profile"].get("current_streak_days", 0)
-        update_session_log(data["log"], session, streak)
+        summary = apply_session_update(session)
+    except ValueError as e:
+        print(f"[Fluent] Error: {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         import traceback
-        print(f"[Fluent] Error updating databases: {e}", file=sys.stderr)
+        print(f"[Fluent] Error updating learner stores: {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         sys.exit(2)
 
-    # Backup originals BEFORE writing new state.
-    backup_all(f"pre-update-{session['session_id']}")
-
-    try:
-        save_documents({
-            "learner_profile": data["profile"],
-            "progress_db": data["progress"],
-            "mistakes_db": data["mistakes"],
-            "mastery_db": data["mastery"],
-            "spaced_repetition": data["sr"],
-            "session_log": data["log"],
-        })
-    except Exception as e:
-        print(f"[Fluent] Error saving learner stores: {e}", file=sys.stderr)
-        sys.exit(2)
-
-    # Summary
-    stats = data["progress"]["overall_stats"]
-    sr_tomorrow = len(data["sr"]["review_queue"].get("tomorrow", []))
-    skill_scores = session.get("skill_scores", {})
-    total_ex = sum(s.get("exercises", 0) for s in skill_scores.values())
-    total_cor = sum(s.get("correct", 0) for s in skill_scores.values())
-
-    print(f"[Fluent] ✅ Updated learner stores for session {session['session_id']} ({backend})")
-    if backend == "sql":
-        print(f"[Fluent] 🗄️ SQLite: {sqlite_db_path()}")
-    print(f"[Fluent] 🔥 Streak: {streak} days | Sessions: {stats['total_sessions']} | Minutes: {stats['total_study_minutes']}")
-    if total_ex > 0:
-        print(f"[Fluent] 📊 This session: {total_cor}/{total_ex} correct ({round(total_cor/total_ex*100)}%)")
+    print(f"[Fluent] ✅ Updated learner stores for session {summary['session_id']} ({summary['backend']})")
+    if summary["backend"] == "sql":
+        print(f"[Fluent] 🗄️ SQLite: {summary['sqlite_path']}")
+    print(f"[Fluent] 🔥 Streak: {summary['streak']} days | Sessions: {summary['total_sessions']} | Minutes: {summary['total_study_minutes']}")
+    if summary["session_exercises"] > 0:
+        print(f"[Fluent] 📊 This session: {summary['session_correct']}/{summary['session_exercises']} correct ({round(summary['session_accuracy'] * 100)}%)")
     else:
         print("[Fluent] 📊 No exercises recorded")
-    print(f"[Fluent] 📈 Overall accuracy: {stats['accuracy_rate']*100:.0f}% ({stats['total_exercises']} exercises)")
-    print(f"[Fluent] 🧠 SR: {data['sr']['metadata']['total_items_tracked']} items tracked, {sr_tomorrow} due tomorrow")
-    print(f"[Fluent] 📝 Errors tracked: {data['mistakes']['metadata']['total_patterns_tracked']} patterns")
+    print(f"[Fluent] 📈 Overall accuracy: {summary['overall_accuracy']*100:.0f}% ({summary['total_exercises']} exercises)")
+    print(f"[Fluent] 🧠 SR: {summary['spaced_repetition_items']} items tracked, {summary['due_tomorrow']} due tomorrow")
+    print(f"[Fluent] 📝 Errors tracked: {summary['error_patterns_tracked']} patterns")
 
     sys.exit(0)
 

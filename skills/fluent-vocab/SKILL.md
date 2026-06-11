@@ -1,6 +1,6 @@
 ---
 name: fluent-vocab
-description: Run an interactive vocabulary drill session with flashcard-style prompts, contextual production, spaced repetition, and per-answer feedback. Triggered only when the learner types /fluent-vocab. Reads learner stores to pick words, presents one word at a time, scores each answer, and calls fluent-db-updater at the end.
+description: Run an interactive vocabulary drill session with flashcard-style prompts, contextual production, spaced repetition, and per-answer feedback. Triggered only when the learner types /fluent-vocab. Reads learner stores to pick words, presents one word at a time, scores each answer, and persists one session payload at the end.
 allowed-tools: Read, Write, Bash
 disable-model-invocation: true
 ---
@@ -24,6 +24,8 @@ Skip this skill if no vocabulary items are due and no new words are queued — o
 ```bash
 python3 scripts/read-db.py
 ```
+
+Prefer MCP tool `fluent_read_state`; use the command above only as fallback.
 
 If the helper is unavailable, resolve `<data_dir>` via `fluent_paths.data_dir()` then read:
 
@@ -104,11 +106,11 @@ Use the `fluent-feedback-formatter` skill's template. Score out of 10, tag sever
 
 Track the answer for the end-of-session DB update:
 
-- Add to `review_results[]` with `quality = floor(score / 2)` (see `fluent-sm2-calculator` skill).
+- Add to `review_results[]` with quality from MCP tool `fluent_score_to_quality`.
 - If the learner met a new word, stage it for `new_vocabulary[]`.
 - If the learner made an error, stage it for `errors[]`.
 
-Do **not** call `update-db.py` after every word — batch at session end.
+Do **not** call `fluent_update_session` or `update-db.py` after every word — batch at session end.
 
 ### 5. Session summary
 
@@ -134,14 +136,17 @@ Do **not** call `update-db.py` after every word — batch at session end.
 
 ### 6. Update all databases
 
-Call the `fluent-db-updater` skill's workflow — one `update-db.py` invocation with:
+Call MCP tool `fluent_update_session` once with:
 
 - `session_id`, `date`, `duration_minutes`
 - `command_used: "/fluent-vocab"`
 - `skills_practiced: ["vocabulary"]`
 - `skill_scores.vocabulary`: `{exercises, correct, time_minutes}`
 - `errors[]`, `new_vocabulary[]`, `review_results[]` collected during the session
+- `exercises[]` with prompts, learner answers, correct answers, feedback, and scores worth keeping
 - `focus_next_session[]` — top 2-3 weak words
+
+Fallback: call `python3 scripts/update-db.py` once with the same payload.
 
 ## Examples
 

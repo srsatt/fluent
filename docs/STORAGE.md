@@ -26,14 +26,23 @@ An explicit SQLite path can be set with `db_path=...` or `FLUENT_DB_PATH=...`.
 
 ## Boundary
 
-Prompts and skills must use the helper boundary:
+Prompts and skills must use the persistence boundary:
+
+```bash
+python3 scripts/fluent-mcp.py
+```
+
+Preferred MCP tools: `fluent_read_state`, `fluent_update_session`, and `fluent_score_to_quality`. `fluent_read_state` defaults to compact output; request `view: "full"` only when you need complete stores.
+
+Fallback:
 
 ```bash
 python3 scripts/read-db.py
+python3 scripts/read-db.py --view full --session-limit 5
 python3 scripts/update-db.py
 ```
 
-Do not teach prompts to read SQLite or JSON directly. Only helper scripts should know the storage backend.
+Do not teach prompts to read SQLite or JSON directly. Only the MCP server and helper scripts should know the storage backend.
 
 ## SQLite Store
 

@@ -25,6 +25,8 @@ Skip this skill when the queue is empty — suggest `/fluent-vocab` or `/fluent-
 python3 scripts/read-db.py
 ```
 
+Prefer MCP tool `fluent_read_state`; use the command above only as fallback.
+
 Read `spaced-repetition.review_queue.today` and `daily_limits.review_items_per_day`. Sort items by `priority` (critical → high → medium → low). Cap at the daily limit (usually 20).
 
 If the queue is empty:
@@ -95,13 +97,13 @@ Present one at a time:
 
 Use the `fluent-feedback-formatter` skill for per-answer feedback.
 
-Then stage the item for the end-of-session update. Do NOT hand-edit `spaced-repetition.json` — use `review_results[]` in the `fluent-db-updater` payload:
+Then stage the item for the end-of-session update. Do NOT hand-edit `spaced-repetition.json` — use `review_results[]` in the `fluent_update_session` payload:
 
 ```json
 { "item_id": "vocab_huis", "quality": 4 }
 ```
 
-The `update-db.py` script runs the SM-2 math (see `fluent-sm2-calculator` skill) and rebuilds the queue. Mapping: `quality = floor(score / 2)`.
+The persistence layer runs the SM-2 math and rebuilds the queue. Get quality from MCP tool `fluent_score_to_quality`.
 
 ### 5. Progress pulse every 5 items
 
@@ -144,15 +146,16 @@ Keep going! 💪
 
 ### 7. Update all databases
 
-Use the `fluent-db-updater` skill:
+Call MCP tool `fluent_update_session` once:
 
 - `command_used: "/fluent-review"`, `skills_practiced: [derived from reviewed items]`
 - `skill_scores` — aggregate per skill touched
 - `review_results[]` — every item reviewed, with `quality`
 - `errors[]` — only patterns where the learner got it wrong (bumps frequency)
+- `exercises[]` — reviewed prompt, learner answer, correct answer, feedback, and score
 - `focus_next_session[]` — the 2-3 items with lowest quality this session
 
-Save exchange to `/results/fluent-review-session-{NNN}.md` for later analysis.
+Fallback: call `python3 scripts/update-db.py` once with the same payload.
 
 ## Examples
 
@@ -208,7 +211,7 @@ Learner: "niet"
 - **Never auto-invoke.** Gated; must fire only on explicit `/fluent-review`. Long interactive + SM-2 mutation.
 - **One item at a time.** Rushing = false positives.
 - **Let the learner struggle.** If they don't remember, that's useful data (quality 0-2). The algorithm needs honest signals.
-- **Never hand-edit `spaced-repetition.json`.** Queue is rebuilt on every `update-db.py` call.
+- **Never hand-edit `spaced-repetition.json`.** Queue is rebuilt on every persistence update.
 
 ## What the Schedule Means
 

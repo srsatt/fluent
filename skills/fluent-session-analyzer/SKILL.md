@@ -1,13 +1,13 @@
 ---
 name: fluent-session-analyzer
-description: Parse Fluent `/results/*.md` session files to extract error patterns, strengths, accuracy trends, and focus areas for the next session. Use when the tutor needs to analyze the learner's recent performance — planning the next lesson, recommending focus areas, or answering "what should I practice next?".
+description: Analyze Fluent session-log entries to extract error patterns, strengths, accuracy trends, and focus areas for the next session. Use when the tutor needs to analyze the learner's recent performance — planning the next lesson, recommending focus areas, or answering "what should I practice next?".
 ---
 
 # Session Analyzer
 
 ## Overview
 
-Every practice session writes a markdown report to `/results/fluent-{skill}-session-{ID}.md` (legacy files may omit `fluent-`). This skill describes how to read those files to plan adaptive follow-up practice. Use it when the tutor needs narrative context the aggregate stores don't capture — the exact sentence the learner wrote, the scenario, the feedback they received.
+Every practice session stores summary fields and optional `exercises[]` detail in `session_log` through `fluent_update_session`. This skill describes how to read those entries to plan adaptive follow-up practice. Use it when the tutor needs narrative context beyond aggregate stores — the exact sentence the learner wrote, the scenario, and the feedback they received.
 
 ## When to Use
 
@@ -17,28 +17,36 @@ Load this skill whenever the tutor:
 - Answers the learner's question "what's my weakest area" or "what should I work on".
 - Generates the next session plan.
 
-Skip this skill when aggregated JSON numbers are enough — prefer `read-db.py` for counts, trends, and mastery levels. Use this skill only when the textual context matters.
+Skip this skill when aggregate numbers are enough — prefer MCP tool `fluent_read_state` for counts, trends, and mastery levels. Use this skill only when exercise-level context matters.
 
 ## Instructions
 
-### 1. Find recent session files
+### 1. Load recent session entries
 
-```
-/results/fluent-{skill}-session-{ID}.md
+Prefer compact state first:
+
+```json
+{ "view": "compact", "session_limit": 5 }
 ```
 
-File naming: `{skill}-session-{NNN}.md` keeps files grouped by skill + chronological by ID. Read the most recent 3-5 files of the relevant skill; don't re-read the entire history.
+If compact state lacks the needed `exercises[]` detail, request a bounded full read:
+
+```json
+{ "view": "full", "session_limit": 5, "include_databases": ["session_log"] }
+```
+
+Read only the most recent 3-5 relevant sessions. Do not request the entire history unless the learner explicitly asks for a long-term audit.
 
 ### 2. Extract error patterns
 
-Scan for `❌` markers. Each correction has:
+Scan `session_log.sessions[].exercises[]`, `session_log.sessions[].focus_next_session`, and stored error summaries. Each correction should have:
 
-- The wrong form ("Your answer")
+- The learner's form
 - The correct form
 - A category (grammar, formal_informal, vocabulary, prepositions, articles, spelling, missing)
 - A severity (🔴 critical, 🟡 moderate, 🟢 minor)
 
-Count frequency per pattern across recent files:
+Count frequency per pattern across recent sessions:
 
 - **1 occurrence** — possibly a typo, ignore
 - **2-3** — emerging pattern, worth drilling
@@ -46,7 +54,7 @@ Count frequency per pattern across recent files:
 
 ### 3. Extract strengths
 
-Scan for `✅` markers and scores ≥ 7/10. Note consistent correct usage — these are reinforcement targets, not drill targets.
+Scan exercise feedback and scores ≥ 7/10. Note consistent correct usage — these are reinforcement targets, not drill targets.
 
 ### 4. Track trajectory
 
@@ -133,9 +141,9 @@ Trend: accuracy rising ~7% per session. Critical errors halving each session —
 
 ## Critical Rules
 
-- **Read `/results/` markdown for context.** Use `read-db.py` for numerical summaries — don't reimplement counts by re-parsing markdown when the DB already has them.
+- **Read session-log entries for context.** Use `fluent_read_state` for numerical summaries — don't reimplement counts when the DB already has them.
 - **Cap the look-back window.** 3-5 recent sessions for the relevant skill. Older data is already baked into `mistakes-db.json` mastery levels.
-- **Never alter `/results/` files.** They are immutable records. Planning only.
+- **Never alter learner stores directly.** Planning is read-only; writes happen only through `fluent_update_session`.
 
 ## Why This Matters
 

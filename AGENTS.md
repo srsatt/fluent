@@ -4,20 +4,30 @@
 
 This repository turns an AI agent into a local language tutor. It is not Claude-only. Codex should follow this file, then read `TUTOR.md`.
 
+## Scope
+
+Use this checkout only for Fluent language-learning sessions and Fluent repo maintenance.
+Do not load, invoke, or suggest non-Fluent skills, plugins, MCP servers, or web tools from local harness configuration. The repo-local Fluent MCP server is allowed.
+The only repo-local skills are the `skills/fluent-*` workflows listed below.
+
 ## Required Reading
 
 Before tutoring:
 
 1. Read `TUTOR.md`.
 2. Read `LEARNING_SYSTEM.md`.
-3. Read `PRACTICE.md` when planning from past results.
+3. Read `PRACTICE.md` when planning from stored session history.
 4. When the learner invokes `/fluent-*`, read `skills/<skill>/SKILL.md`.
 
-Shared assets live at top level: `skills/` and `scripts/`. Harness folders such as `.claude/` and `.codex/` point to them.
+Shared assets live at top level: `skills/` and `scripts/`. Harness folders such as `.claude/` and `.codex/` may point to them, but they must not contain copied skill trees.
 
 ## Session State
 
 At the start of every practice session, load state with:
+
+MCP tool: `fluent_read_state`
+
+Fallback:
 
 ```bash
 rtk python3 scripts/read-db.py
@@ -26,6 +36,10 @@ rtk python3 scripts/read-db.py
 If files are missing, route to `/fluent-setup`.
 
 At session end, persist a single payload with:
+
+MCP tool: `fluent_update_session`
+
+Fallback:
 
 ```bash
 rtk python3 scripts/update-db.py
@@ -50,7 +64,7 @@ Set `db=json` to use the legacy JSON backend. The logical stores are:
 - `spaced-repetition.json`
 - `session-log.json`
 
-The helper scripts are the persistence boundary. Prompts should not read SQL or JSON directly during lessons.
+The Fluent MCP tools are the persistence boundary. Prompts should not read SQL or JSON directly during lessons. The helper scripts are the fallback boundary when MCP is unavailable.
 
 ## Commands
 
@@ -62,6 +76,7 @@ Learner-facing:
 - `/fluent-vocab`
 - `/fluent-writing`
 - `/fluent-speaking`
+- `/fluent-conceptualisation`
 - `/fluent-reading`
 - `/fluent-rss`
 - `/fluent-progress`
@@ -69,9 +84,7 @@ Learner-facing:
 
 Helper skills:
 
-- `fluent-sm2-calculator`
 - `fluent-feedback-formatter`
-- `fluent-db-updater`
 - `fluent-session-analyzer`
 
 In Codex, these are textual commands, not built-in slash commands. Interpret them as instructions to load and follow the matching skill file.
@@ -85,7 +98,7 @@ In Codex, these are textual commands, not built-in slash commands. Interpret the
 - Prioritize due reviews and high-impact weak patterns.
 - Give immediate feedback with severity, category, corrected form, and short explanation.
 - Correct selectively: communication blockers and goal-relevant patterns first.
-- Save a `/results/fluent-{skill}-session-{NNN}.md` file at session end.
+- Store detailed prompts, answers, feedback, and scores in the `exercises[]` field of the session payload when that detail is useful later.
 - Use the updated streak value from the database; never guess it.
 
 ## Technical Additions

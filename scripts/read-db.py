@@ -4,78 +4,63 @@ Fluent DB Reader Script
 Loads learner stores and outputs a single JSON object to stdout.
 
 Usage:
-    python3 scripts/read-db.py
+    python3 scripts/read-db.py [--view compact|full] [--session-limit N]
 
 Exit codes: 0=success, 1=partial (some files missing), 2=critical error
 """
+import argparse
+import importlib.util
 import json
-import re
 import sys
-from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from fluent_paths import force_utf8_io, sqlite_db_path  # noqa: E402
-from fluent_storage import load_documents  # noqa: E402
+from fluent_paths import force_utf8_io  # noqa: E402
 
 force_utf8_io()
 
 
-def next_session_id(sessions: list) -> str:
-    """Produce 'session-NNN' matching existing id convention.
-    Falls back to 'session-001' on empty log or unparseable last id."""
-    if not sessions:
-        return "session-001"
-    last_id = sessions[-1].get("session_id", "")
-    m = re.search(r'(\d+)', last_id)
-    if m:
-        return f"session-{int(m.group(1)) + 1:03d}"
-    return f"session-{len(sessions) + 1:03d}"
+def load_state_reader():
+    script_dir = Path(__file__).resolve().parent
+    spec = importlib.util.spec_from_file_location("fluent_mcp", script_dir / "fluent-mcp.py")
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Could not load fluent-mcp.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.read_state
 
 
 def main():
-    databases, missing, backend = load_documents()
+    parser = argparse.ArgumentParser(description="Read Fluent learner state.")
+    parser.add_argument("--view", choices=["compact", "full"], default="compact")
+    parser.add_argument("--session-limit", type=int, default=None)
+    parser.add_argument("--pattern-limit", type=int, default=20)
+    parser.add_argument("--due-limit", type=int, default=20)
+    parser.add_argument(
+        "--include-databases",
+        default="",
+        help="Comma-separated logical stores to include, for example learner_profile,session_log",
+    )
+    args = parser.parse_args()
 
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-
-    sr = databases.get("spaced_repetition", {})
-    items = sr.get("items", {})
-    due_items = [iid for iid, item in items.items() if item.get("due_date", "") <= today]
-
-    log = databases.get("session_log", {})
-    sessions = log.get("sessions", [])
-
-    profile = databases.get("learner_profile", {})
-    last_updated = profile.get("last_updated", "")
-    streak_active = last_updated in (today, yesterday)
-    try:
-        days_since = (now - datetime.strptime(last_updated, "%Y-%m-%d")).days if last_updated else None
-    except ValueError:
-        days_since = None
-
-    result = {
-        "databases": databases,
-        "computed": {
-            "today": today,
-            "due_reviews_count": len(due_items),
-            "due_review_items": due_items,
-            "next_session_id": next_session_id(sessions),
-            "streak_active": streak_active,
-            "days_since_last_session": days_since,
-            "storage_backend": backend,
-            "sqlite_path": str(sqlite_db_path()) if backend == "sql" else None,
-        },
+    request = {
+        "view": args.view,
+        "pattern_limit": args.pattern_limit,
+        "due_limit": args.due_limit,
     }
+    if args.session_limit is not None:
+        request["session_limit"] = args.session_limit
+    if args.include_databases:
+        request["include_databases"] = [
+            value.strip() for value in args.include_databases.split(",") if value.strip()
+        ]
 
-    if missing:
-        result["_warnings"] = [f"Missing file: {m}" for m in missing]
+    result = load_state_reader()(request)
 
     json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
     print()
 
-    sys.exit(1 if missing else 0)
+    sys.exit(1 if result.get("_warnings") else 0)
 
 
 if __name__ == "__main__":

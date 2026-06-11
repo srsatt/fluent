@@ -25,6 +25,8 @@ Skip this skill below A1 mastery 2 — the learner needs a basic word bank and v
 python3 scripts/read-db.py
 ```
 
+Prefer MCP tool `fluent_read_state`; use the command above only as fallback.
+
 Need: `learner-profile` (level, target language), `mastery-db.skills_mastery.speaking`.
 
 ### 2. Opening
@@ -158,14 +160,15 @@ Ready? I'll start...
 
 ### 8. Update all databases
 
-Use the `fluent-db-updater` skill:
+Call MCP tool `fluent_update_session` once with:
 
 - `command_used: "/fluent-speaking"`, `skills_practiced: ["speaking"]`
 - `skill_scores.speaking: {exercises: N, correct: count_of_clear_answers, time_minutes}`
 - `errors[]` — only communication-blocking ones (don't flood mistakes-db with minor speaking slips)
+- `exercises[]` — conversation turns worth keeping for later analysis
 - `focus_next_session[]` — one topic + one pattern
 
-Save exchange to `/results/fluent-speaking-session-{NNN}.md`.
+Fallback: call `python3 scripts/update-db.py` once with the same payload.
 
 ## Examples
 

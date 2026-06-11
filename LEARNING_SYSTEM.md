@@ -12,7 +12,15 @@ The system is language-agnostic and CEFR-aware. A1 tasks should be concrete and 
 
 ## Data Boundary
 
-Use the helper scripts as the storage API:
+Use the Fluent MCP tools as the preferred storage API:
+
+```text
+fluent_read_state
+fluent_update_session
+fluent_score_to_quality
+```
+
+For runtimes without MCP, use the helper scripts:
 
 ```bash
 python3 scripts/read-db.py
@@ -30,7 +38,7 @@ The default source of truth is SQLite (`db=sql` in `.env`). The legacy JSON back
 | spaced repetition | SM-2 items and review queue | every session | session end |
 | session log | historical sessions and recommendations | for context | session end |
 
-Teaching prompts must not depend on the backend. They should depend on `read-db.py` output and `update-db.py` payloads.
+Teaching prompts must not depend on the backend. They should depend on `fluent_read_state` output and `fluent_update_session` payloads, with `read-db.py` / `update-db.py` as fallback.
 
 ## Adult-Learning Methodology
 
@@ -49,7 +57,7 @@ Use these principles in every skill:
 
 ## Session Start Protocol
 
-1. Load `read-db.py`.
+1. Load learner state with `fluent_read_state` or fallback `read-db.py`.
 2. If required data is missing, stop and route to `/fluent-setup`.
 3. Identify:
    - due review count and priority items
@@ -109,7 +117,7 @@ Type the corrected version once: "{correct_sentence}"
 
 ## SM-2 Review Scheduling
 
-Use SM-2 through `update-db.py` whenever possible. Map answer score to quality:
+Use SM-2 through `fluent_update_session` whenever possible. Map answer score to quality with `fluent_score_to_quality` or this table:
 
 | Score | Quality |
 |-------|---------|
@@ -139,15 +147,15 @@ The script also updates easiness factor, due date, review history, mastery, and 
 At the end of every practice session:
 
 1. Calculate duration, exercises, accuracy, topics, errors, breakthroughs, and next focus.
-2. Save a result file under `/results/fluent-{skill}-session-{NNN}.md`.
-3. Call `fluent-db-updater` / `update-db.py` once with the full payload.
+2. Put useful per-exercise detail in `exercises[]` on the session payload.
+3. Call `fluent_update_session` / `update-db.py` once with the full payload.
 4. Show a short summary:
    - accuracy and count
    - one concrete improvement
    - one next focus
    - current streak from the updated profile, not a guessed value
 
-Do not call `update-db.py` after every question. Batch session data and persist once.
+Do not call `fluent_update_session` or `update-db.py` after every question. Batch session data and persist once. Do not create separate `/results` files; SQLite-backed session logs are the source of truth.
 
 ## Quality Checklist
 

@@ -37,7 +37,7 @@ Read these files in order:
 
 1. `TUTOR.md` - role, session contract, feedback style, critical rules
 2. `LEARNING_SYSTEM.md` - methodology, storage boundary, SM-2, session flow
-3. `PRACTICE.md` - how to analyze result files and choose the next lesson
+3. `PRACTICE.md` - how to analyze stored session history and choose the next lesson
 4. `skills/<skill>/SKILL.md` - command-specific workflow
 
 For Codex, slash commands are just learner intent. When the learner types `/fluent-writing`, read `skills/fluent-writing/SKILL.md` and follow it.
@@ -52,6 +52,7 @@ For Codex, slash commands are just learner intent. When the learner types `/flue
 | `/fluent-vocab` | Vocabulary drills |
 | `/fluent-writing` | Writing tasks and corrections |
 | `/fluent-speaking` | Typed conversation practice |
+| `/fluent-conceptualisation` | Discover and practice one needed grammar rule |
 | `/fluent-reading` | Reading comprehension |
 | `/fluent-rss` | Study real audio/video RSS content; use `/fluent-rss setup` to store feeds and transcription settings |
 | `/fluent-progress` | Read-only progress dashboard |
@@ -59,9 +60,7 @@ For Codex, slash commands are just learner intent. When the learner types `/flue
 
 Helper skills:
 
-- `fluent-sm2-calculator`
 - `fluent-feedback-formatter`
-- `fluent-db-updater`
 - `fluent-session-analyzer`
 
 ## Learning Model
@@ -97,14 +96,22 @@ Set `db=json` to use the legacy JSON-file backend. Both backends expose the same
 | `spaced-repetition.json` | SM-2 items and queues |
 | `session-log.json` | session history |
 
-Agents should not hand-edit these during lessons. Use:
+Agents should not hand-edit these during lessons. Prefer MCP tools:
+
+```text
+fluent_read_state
+fluent_update_session
+fluent_score_to_quality
+```
+
+For runtimes without MCP, use the CLI fallback:
 
 ```bash
 python3 scripts/read-db.py
 python3 scripts/update-db.py
 ```
 
-The helper boundary is intentional. Prompts and skills use the same API whether the backend is SQL or JSON.
+The persistence boundary is intentional. Prompts and skills use the same API whether the backend is SQL or JSON.
 RSS feed subscriptions are stored under `learner-profile.json` preferences by `scripts/rss-setup.py`; machine-local STT settings are stored in `rss-stt-settings.json` in the active data directory. Media previews and transcripts use `scripts/rss-preview.py` and `scripts/rss-transcribe.py`.
 
 ### Data Directory Resolution
@@ -171,12 +178,11 @@ Fluent remains the source of truth. Anki sync is currently one-way: Fluent -> An
 | `.codex/` | Codex harness files and symlinks |
 | `.claude/references/` | reusable templates |
 | `data-examples/` | JSON templates |
-| `results/` | generated session records |
 | `docs/` | technical docs |
 
 ## Privacy
 
-All learner data stays local unless the learner explicitly exports it or pushes to Anki. Personal data, SQLite mirrors, TSV exports, result files, and backups are ignored by git.
+All learner data stays local unless the learner explicitly exports it or pushes to Anki. Personal data, SQLite databases, TSV exports, and backups are ignored by git.
 
 ## Development
 

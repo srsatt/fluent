@@ -38,7 +38,14 @@ references.
 | `feedback-formatter` | `fluent-feedback-formatter` |
 | `session-analyzer` | `fluent-session-analyzer` |
 
-New session result files use `/results/fluent-{skill}-session-{NNN}.md`.
+Persistence helpers later moved to the repo-local Fluent MCP server:
+
+| Removed utility skill | Replacement MCP tool |
+|-----------------------|----------------------|
+| `fluent-db-updater` | `fluent_update_session` |
+| `fluent-sm2-calculator` | `fluent_score_to_quality` |
+
+Session exchange details are stored in SQLite-backed `session_log.sessions[].exercises[]`; separate `/results` files are no longer created.
 Existing files using the older `{skill}-session-{NNN}.md` naming are still
 read by `fluent-session-analyzer` — no migration required.
 

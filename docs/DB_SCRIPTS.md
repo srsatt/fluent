@@ -1,20 +1,53 @@
-# Database Helper Scripts
+# Database Persistence API
 
-Two Python scripts under `scripts/` are the supported persistence API:
+The Fluent MCP server is the preferred persistence API for agent runtimes:
+
+| MCP tool | Purpose |
+|----------|---------|
+| `fluent_read_state` | Load compact or full learner state plus computed fields |
+| `fluent_update_session` | Apply one session report atomically |
+| `fluent_score_to_quality` | Map a 0-10 score to SM-2 quality 0-5 |
+
+Start the repo-local server with:
+
+```bash
+python3 scripts/fluent-mcp.py
+```
+
+The same operations are still available as CLI fallback scripts:
 
 | Script | Purpose |
 |--------|---------|
-| `read-db.py` | Load all learner stores plus computed fields |
+| `read-db.py` | Load compact or full learner state plus computed fields |
 | `update-db.py` | Apply one session report atomically |
 
 The `scripts` and `.codex/scripts` paths are harness symlinks to the same top-level scripts.
 
-## Reading
+## MCP Reading
+
+Call `fluent_read_state` with `{}` for the default compact view. Compact state bounds session history, due-review details, and mistake patterns so token usage stays stable as the learner history grows.
+
+Optional arguments:
+
+```json
+{
+  "view": "compact",
+  "session_limit": 5,
+  "pattern_limit": 20,
+  "due_limit": 20,
+  "include_databases": ["learner_profile", "session_log"]
+}
+```
+
+Use `view: "full"` only for migrations, debugging, or bounded audits that genuinely need complete stores. In full view, omit `session_limit` to include all sessions, or pass a limit to include only the most recent entries.
+
+## CLI Reading
 
 From the repo root:
 
 ```bash
 python3 scripts/read-db.py
+python3 scripts/read-db.py --view full --session-limit 5 --include-databases session_log
 ```
 
 From another working directory, resolve the root first:
@@ -27,6 +60,7 @@ Output shape:
 
 ```json
 {
+  "view": "compact",
   "databases": {
     "learner_profile": {},
     "progress_db": {},
@@ -39,6 +73,7 @@ Output shape:
     "today": "2026-04-24",
     "due_reviews_count": 3,
     "due_review_items": ["vocab_dag"],
+    "due_review_items_omitted": 0,
     "next_session_id": "session-005",
     "streak_active": true,
     "days_since_last_session": 1
@@ -52,7 +87,17 @@ Exit codes:
 - `1` partial result with missing files
 - `2` critical error
 
-## Writing
+## MCP Writing
+
+Call `fluent_update_session` with:
+
+```json
+{ "session": { "...": "payload shown below" } }
+```
+
+Use `fluent_score_to_quality` to convert per-answer scores into `review_results[].quality`.
+
+## CLI Writing
 
 Call once at session end:
 
@@ -98,6 +143,15 @@ python3 scripts/update-db.py <<'EOF'
   "topics_covered": ["articles", "house_vocabulary"],
   "breakthroughs": ["First correct use of a target article"],
   "focus_next_session": ["Article gender drill"],
+  "exercises": [
+    {
+      "prompt": "Translate: the house",
+      "learner_answer": "het huis",
+      "correct_answer": "het huis",
+      "feedback": "Correct.",
+      "score": 10
+    }
+  ],
   "session_notes": "Strong session."
 }
 EOF
@@ -109,6 +163,8 @@ Required fields:
 - `date`
 
 Everything else is optional.
+
+Use `exercises[]` for any per-turn detail that future planning should retain. Do not create separate result files; the SQLite-backed session log is the durable session record.
 
 ## Side Effects
 

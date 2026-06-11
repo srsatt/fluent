@@ -11,7 +11,7 @@ This directory is intentionally empty in git. `/fluent-setup` creates private le
 - `spaced-repetition.json` - SM-2 review items and queues
 - `session-log.json` - session history
 
-Agents should use `scripts/read-db.py` and `scripts/update-db.py` rather than editing stores directly during lessons.
+Agents should use the Fluent MCP tools (`fluent_read_state`, `fluent_update_session`) rather than editing stores directly during lessons. Use `scripts/read-db.py` and `scripts/update-db.py` only as a fallback when MCP is unavailable.
 
 ## Private by Default
 
@@ -21,7 +21,6 @@ The repo ignores:
 - JSON backups
 - SQLite mirrors
 - Anki TSV exports
-- generated result files
 
 All data stays on your machine unless you explicitly export or sync it.
 

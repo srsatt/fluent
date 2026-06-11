@@ -25,6 +25,8 @@ Skip this skill below A1 mastery 3 — shorter flashcard drills (`/fluent-vocab`
 python3 scripts/read-db.py
 ```
 
+Prefer MCP tool `fluent_read_state`; use the command above only as fallback.
+
 Need: `learner-profile` (level, target language, interests), `mastery-db.skills_mastery.reading`.
 
 ### 2. Opening
@@ -194,15 +196,16 @@ If yes, stage each word for `new_vocabulary[]` in the end-of-session DB update.
 
 ### 9. Update all databases
 
-Use the `fluent-db-updater` skill:
+Call MCP tool `fluent_update_session` once with:
 
 - `command_used: "/fluent-reading"`, `skills_practiced: ["reading"]`
 - `skill_scores.reading: {exercises: N, correct: count_right, time_minutes}`
 - `errors[]` — per question-type weakness (category `comprehension`, `vocabulary`, `inference`)
 - `new_vocabulary[]` — words the learner chose to save
+- `exercises[]` — text reference, questions, learner answers, corrected answers, feedback, and scores
 - `focus_next_session[]`
 
-Save to `/results/fluent-reading-session-{NNN}.md` — include the full text + Q&A for later analysis.
+Fallback: call `python3 scripts/update-db.py` once with the same payload.
 
 ## Examples
 

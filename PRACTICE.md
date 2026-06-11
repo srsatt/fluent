@@ -6,15 +6,15 @@
 
 Use these sources in order:
 
-1. `read-db.py` output for current counts, mastery, due reviews, and recent sessions.
-2. The latest 3-5 `/results/fluent-{skill}-session-{NNN}.md` files for rich examples.
+1. `fluent_read_state` output for current counts, mastery, due reviews, and recent sessions.
+2. Recent `session_log.sessions[].exercises[]` entries for rich examples when the compact state includes enough detail.
 3. The learner profile for goals, level, interests, and constraints.
 
-Do not scan the entire history unless the learner explicitly asks for a long-term audit.
+Use compact state for normal planning. Request `fluent_read_state` with `view: "full"` and a small `session_limit` only when you need older or richer session detail. Do not scan the entire history unless the learner explicitly asks for a long-term audit.
 
 ## What to Extract
 
-From result files, extract:
+From stored session exercise entries, extract:
 
 - recurring error patterns
 - severity labels
@@ -93,7 +93,7 @@ For speaking-style practice, use communicative clarity as the main score. For ex
 
 ## Feedback Mining Rules
 
-When parsing session files:
+When parsing stored exercise feedback:
 
 - `❌` marks errors.
 - `✅` marks strengths.
@@ -103,17 +103,14 @@ When parsing session files:
 
 Normalize equivalent pattern names. For example, `formal_informal`, `register_formality`, and `u_vs_je` should not become three separate targets.
 
-## Result File Requirements
+## Session Detail Requirements
 
-Every new result file should include:
+When a session produces detail that will help future planning, include it in the session payload as `exercises[]`. Each item should include:
 
 - prompt
 - learner answer
 - corrected answer
 - feedback
 - score
-- error pattern summary
-- strengths
-- focus areas for next time
 
-The file is a narrative learning record. The databases hold the aggregate state.
+The session log is the narrative learning record. The aggregate stores hold progress, mistakes, mastery, and spaced-repetition state.
