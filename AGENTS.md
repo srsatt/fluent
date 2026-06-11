@@ -63,6 +63,7 @@ Learner-facing:
 - `/fluent-writing`
 - `/fluent-speaking`
 - `/fluent-reading`
+- `/fluent-rss`
 - `/fluent-progress`
 - `/fluent-anki-sync`
 

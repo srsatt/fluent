@@ -151,6 +151,7 @@ Present:
 - 📊 `/fluent-progress` — check stats (5 min)
 
 **Optional:**
+- 🎧 `/fluent-rss setup` — add real audio/video RSS feeds and optional subtitles with whisper.cpp
 - 🗂️ `/fluent-anki-sync` — export review cards to Anki
 
 ### Milestones

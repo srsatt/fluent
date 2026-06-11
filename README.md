@@ -53,6 +53,7 @@ For Codex, slash commands are just learner intent. When the learner types `/flue
 | `/fluent-writing` | Writing tasks and corrections |
 | `/fluent-speaking` | Typed conversation practice |
 | `/fluent-reading` | Reading comprehension |
+| `/fluent-rss` | Study real audio/video RSS content; use `/fluent-rss setup` to store feeds and transcription settings |
 | `/fluent-progress` | Read-only progress dashboard |
 | `/fluent-anki-sync` | Export or push review items to Anki |
 
@@ -104,6 +105,7 @@ python3 scripts/update-db.py
 ```
 
 The helper boundary is intentional. Prompts and skills use the same API whether the backend is SQL or JSON.
+RSS feed preferences are stored under `learner-profile.json` preferences by `scripts/rss-setup.py`; media previews and transcripts use `scripts/rss-preview.py` and `scripts/rss-transcribe.py`.
 
 ### Data Directory Resolution
 

@@ -53,17 +53,18 @@ Need all 6 DBs. If any missing, direct the learner to `/fluent-setup` and stop.
 3. 📖 Vocabulary (flashcard drills)
 4. 👀 Reading (comprehension)
 5. 🔄 Spaced Review (today's due items)
-6. 🎲 Surprise me! (adaptive mix)
+6. 🎧 RSS Media (real audio/video)
+7. 🎲 Surprise me! (adaptive mix)
 
 **Type a number or skill name:**
 ```
 
 ### 4. Route
 
-- 1-5 → hand off to the matching skill (`fluent-writing`, `fluent-speaking`, `fluent-vocab`, `fluent-reading`, `fluent-review`). Those skills cover everything needed; this skill's job here is just to dispatch.
-- 6 (adaptive mix) → use this skill's own exercise sequencer (below).
+- 1-6 → hand off to the matching skill (`fluent-writing`, `fluent-speaking`, `fluent-vocab`, `fluent-reading`, `fluent-review`, `fluent-rss`). Those skills cover everything needed; this skill's job here is just to dispatch.
+- 7 (adaptive mix) → use this skill's own exercise sequencer (below).
 
-### 5. Adaptive mix (option 6)
+### 5. Adaptive mix (option 7)
 
 Plan a 20-min session around a real adult task whenever possible:
 
@@ -107,6 +108,8 @@ elif mastery_level >= 4:
 **Vocabulary**: recognition, production, cloze, associations, synonym matching.
 
 **Reading**: short text + comprehension, cloze paragraph, true/false, summarization.
+
+**RSS media**: authentic audio/video preview, transcript-backed gist/detail questions, vocabulary in context.
 
 ### 8. Per-answer feedback
 
@@ -171,7 +174,8 @@ If the session produced several useful vocabulary items, mention that `/fluent-a
 > 3. 📖 Vocabulary (flashcard drills)
 > 4. 👀 Reading (comprehension)
 > 5. 🔄 Spaced Review (today's due items)
-> 6. 🎲 Surprise me! (adaptive mix)
+> 6. 🎧 RSS Media (real audio/video)
+> 7. 🎲 Surprise me! (adaptive mix)
 >
 > **Type a number or skill name:**
 

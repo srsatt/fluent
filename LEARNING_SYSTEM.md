@@ -72,6 +72,7 @@ Choose tasks by skill and level:
 | speaking typed | simple Q&A, role-play with scaffolds | repair strategies, opinions, narratives, negotiation |
 | reading | short messages, ads, instructions | articles, forum posts, guides, inference |
 | listening proxy | sound-spelling awareness, minimal pairs in text | transcript prediction, dictation-style prompts |
+| RSS media | short authentic audio/video previews, gist questions | transcript-backed listening, inference, summaries, stance |
 
 Use a rolling accuracy target:
 
