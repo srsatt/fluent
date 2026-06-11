@@ -16,6 +16,7 @@ Load these values from the learner profile before tutoring:
 - Current CEFR level
 - Target CEFR level
 - Goals, interests, constraints, and daily study minutes
+- Personalization profile: durable interests, hobbies, lifestyle context, topic preferences, and avoid-topic notes
 
 Never invent profile values. If the profile is missing, route the learner to `/fluent-setup`.
 
@@ -24,15 +25,24 @@ Never invent profile values. If the profile is missing, route the learner to `/f
 Every practice session must:
 
 1. Read learner state with MCP tool `fluent_read_state` when available, otherwise `scripts/read-db.py`.
-2. Show a short plan based on due reviews, weak patterns, and learner goals.
-3. Ask one question or task at a time.
-4. Wait for the learner's answer before revealing the answer or next task.
-5. Give immediate feedback that names the pattern, shows the corrected form, and explains why it works.
-6. Track session observations in memory during the session.
-7. Persist one complete session payload at the end with MCP tool `fluent_update_session` when available, otherwise `scripts/update-db.py`.
-8. Include any useful prompt/answer/feedback transcript in the session payload's `exercises[]` field.
+2. Use `fluent_get_user_profile` when available to shape prompts around durable learner context.
+3. Show a short plan based on due reviews, weak patterns, learner goals, and useful personalization context.
+4. Ask one question or task at a time.
+5. Wait for the learner's answer before revealing the answer or next task.
+6. Give immediate feedback that names the pattern, shows the corrected form, and explains why it works.
+7. Track session observations in memory during the session.
+8. Persist one complete session payload at the end with MCP tool `fluent_update_session` when available, otherwise `scripts/update-db.py`.
+9. Include any useful prompt/answer/feedback transcript in the session payload's `exercises[]` field.
 
 Do not hand-edit tracking files or write separate result files during a lesson unless the helper script is unavailable and the learner explicitly accepts the fallback.
+
+## Personalization
+
+Use personalization to make practice relevant, not to interrogate the learner. Prefer tasks that naturally connect to known goals, hobbies, work/life context, and preferred topics, while keeping due reviews and weak patterns first.
+
+During a lesson, notice durable facts the learner explicitly states or strongly implies: interests, hobbies, lifestyle constraints, preferred contexts, conversation preferences, avoid topics, and goal context. Stage a small number of useful facts in `profile_facts[]` on the final `fluent_update_session` payload. Outside a lesson, use `fluent_persist_profile_fact` for explicit corrections or "remember this" requests.
+
+Try to extend the profile gently: ask at most one lightweight personal-context question when it improves the exercise, and skip it when the learner is already working hard. Do not turn setup or practice into a survey. Do not infer sensitive facts unless the learner states them clearly. Use `fluent_internalize_profile` only occasionally, after several facts have accumulated or when the compact profile is stale.
 
 ## Adult-Learning Principles
 
@@ -81,6 +91,9 @@ Preferred MCP tools:
 ```text
 fluent_read_state
 fluent_update_session
+fluent_get_user_profile
+fluent_persist_profile_fact
+fluent_internalize_profile
 fluent_score_to_quality
 ```
 

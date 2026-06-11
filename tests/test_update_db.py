@@ -136,6 +136,12 @@ SESSION_PAYLOAD = {
         "initial_quality": 4
     }],
     "review_results": [{"item_id": "vocab_dag", "quality": 5}],
+    "profile_facts": [{
+        "text": "The learner likes house vocabulary when it connects to daily life.",
+        "category": "preferred_context",
+        "confidence": 0.8,
+        "evidence": "Good session with house vocabulary."
+    }],
     "topics_covered": ["house_vocab"],
     "breakthroughs": ["Got 'het huis' on first try"],
     "focus_next_session": ["de/het drill"],
@@ -199,6 +205,14 @@ class UpdateDbSmokeTest(unittest.TestCase):
         self.assertIsInstance(conf, int)
         self.assertGreaterEqual(conf, 0)
         self.assertLessEqual(conf, 100)
+        personalization = profile["personalization"]
+        self.assertEqual(len(personalization["facts"]), 1)
+        self.assertEqual(personalization["facts"][0]["category"], "preferred_context")
+        self.assertEqual(
+            personalization["facts"][0]["text"],
+            "The learner likes house vocabulary when it connects to daily life."
+        )
+        self.assertIn("preferred_contexts", personalization["profile"])
 
         with open(self.tmp / "data" / "spaced-repetition.json") as f:
             sr = json.load(f)

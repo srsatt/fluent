@@ -27,6 +27,10 @@ At the start of every practice session, load state with:
 
 MCP tool: `fluent_read_state`
 
+Then load compact personalization when available:
+
+MCP tool: `fluent_get_user_profile`
+
 Fallback:
 
 ```bash
@@ -46,6 +50,7 @@ rtk python3 scripts/update-db.py
 ```
 
 Do not hand-edit tracking files during a session. Batch observations and write once at the end.
+Batch useful new learner facts in `profile_facts[]` when they are explicit, durable, and helpful for future lesson design.
 
 ## Learner Data
 
@@ -65,6 +70,8 @@ Set `db=json` to use the legacy JSON backend. The logical stores are:
 - `session-log.json`
 
 The Fluent MCP tools are the persistence boundary. Prompts should not read SQL or JSON directly during lessons. The helper scripts are the fallback boundary when MCP is unavailable.
+
+Personalization facts live under `learner-profile.json` in `personalization.facts[]`, with a compact tutor-facing summary in `personalization.profile`. Use `fluent_persist_profile_fact` only for explicit out-of-session facts or learner corrections. Use `fluent_internalize_profile` rarely to refresh the compact summary.
 
 ## Commands
 

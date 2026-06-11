@@ -17,6 +17,9 @@ Use the Fluent MCP tools as the preferred storage API:
 ```text
 fluent_read_state
 fluent_update_session
+fluent_get_user_profile
+fluent_persist_profile_fact
+fluent_internalize_profile
 fluent_score_to_quality
 ```
 
@@ -32,6 +35,7 @@ The default source of truth is SQLite (`db=sql` in `.env`). The legacy JSON back
 | Logical store | Purpose | Read | Update |
 |---------------|---------|------|--------|
 | learner profile | name, languages, CEFR levels, goals, streak, preferences | every session | setup, milestones, preference changes |
+| learner personalization | durable profile facts, interests, hobbies, lifestyle context, topic preferences | every session | explicit learner facts, occasional internalization |
 | progress | statistics, trends, per-skill accuracy | every session | session end |
 | mistakes | recurring error patterns and examples | before exercise selection | session end |
 | mastery | skill and pattern mastery levels | before exercise selection | session end |
@@ -59,13 +63,14 @@ Use these principles in every skill:
 
 1. Load learner state with `fluent_read_state` or fallback `read-db.py`.
 2. If required data is missing, stop and route to `/fluent-setup`.
-3. Identify:
+3. Load compact personalization with `fluent_get_user_profile` when available.
+4. Identify:
    - due review count and priority items
    - top weak patterns by frequency, severity, and low mastery
    - skills not practiced recently
    - learner goals, interests, and time budget
-4. Greet briefly in the target language when appropriate.
-5. Show a compact plan and ask for confirmation or a constrained choice.
+5. Greet briefly in the target language when appropriate.
+6. Show a compact plan and ask for confirmation or a constrained choice.
 
 Do not write a long motivational preamble. Get to practice quickly.
 
@@ -89,6 +94,8 @@ Use a rolling accuracy target:
 - over 80%: remove scaffolding or raise complexity
 
 For adult learners, context matters. Instead of isolated grammar drills only, embed forms in a reason to communicate.
+
+Use personal context sparingly and usefully. When a learner has durable interests, hobbies, lifestyle constraints, or preferred topics, choose examples that fit those facts. If a lesson would benefit from one more bit of context, ask one lightweight question and continue; do not turn practice into an intake interview.
 
 ## Feedback Protocol
 
@@ -148,8 +155,9 @@ At the end of every practice session:
 
 1. Calculate duration, exercises, accuracy, topics, errors, breakthroughs, and next focus.
 2. Put useful per-exercise detail in `exercises[]` on the session payload.
-3. Call `fluent_update_session` / `update-db.py` once with the full payload.
-4. Show a short summary:
+3. Put useful new personalization facts in `profile_facts[]` when the learner explicitly stated them or strongly implied them.
+4. Call `fluent_update_session` / `update-db.py` once with the full payload.
+5. Show a short summary:
    - accuracy and count
    - one concrete improvement
    - one next focus

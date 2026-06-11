@@ -6,6 +6,9 @@ The Fluent MCP server is the preferred persistence API for agent runtimes:
 |----------|---------|
 | `fluent_read_state` | Load compact or full learner state plus computed fields |
 | `fluent_update_session` | Apply one session report atomically |
+| `fluent_get_user_profile` | Read compact learner profile plus personalization summary |
+| `fluent_persist_profile_fact` | Store one explicit durable learner fact |
+| `fluent_internalize_profile` | Refresh compact personalization profile from stored facts |
 | `fluent_score_to_quality` | Map a 0-10 score to SM-2 quality 0-5 |
 
 Start the repo-local server with:
@@ -97,6 +100,19 @@ Call `fluent_update_session` with:
 
 Use `fluent_score_to_quality` to convert per-answer scores into `review_results[].quality`.
 
+For personalization outside a lesson, call `fluent_persist_profile_fact`:
+
+```json
+{
+  "text": "The learner has a German tutor once a week.",
+  "category": "lifestyle",
+  "confidence": 0.9,
+  "source": "learner-correction"
+}
+```
+
+Call `fluent_internalize_profile` only occasionally to refresh the compact tutor-facing profile from stored facts. During lessons, prefer batching new facts in `profile_facts[]` on the normal `fluent_update_session` payload.
+
 ## CLI Writing
 
 Call once at session end:
@@ -140,6 +156,14 @@ python3 scripts/update-db.py <<'EOF'
   "review_results": [
     { "item_id": "vocab_dag", "quality": 4 }
   ],
+  "profile_facts": [
+    {
+      "text": "The learner likes appointment and bureaucracy scenarios because of the B1 citizenship goal.",
+      "category": "preferred_context",
+      "confidence": 0.8,
+      "evidence": "Learner chose citizenship/application practice."
+    }
+  ],
   "topics_covered": ["articles", "house_vocabulary"],
   "breakthroughs": ["First correct use of a target article"],
   "focus_next_session": ["Article gender drill"],
@@ -182,6 +206,7 @@ Exit codes:
 ## Data Model Notes
 
 - `learner-profile.json` stores confidence per skill as 0-100 integers.
+- `learner-profile.json` stores personalization facts in `personalization.facts[]` and the compact tutor-facing summary in `personalization.profile`.
 - `progress-db.json` stores accuracy values as 0.0-1.0 floats.
 - `session-log.json` sessions use `session-NNN` ids.
 - `spaced-repetition.json` items preserve content, answer, category, priority, review history, mastery, and SM-2 fields.

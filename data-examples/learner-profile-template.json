@@ -62,5 +62,33 @@
     "feedback_style": "immediate_with_explanation",
     "gamification_enabled": true,
     "use_emojis": true
+  },
+  "personalization": {
+    "facts": [
+      {
+        "id": "profile_fact_{YYYYMMDD}_example",
+        "text": "{A durable learner fact, stated explicitly by the learner}",
+        "category": "{interest|hobby|lifestyle|goal_context|conversation_preference|preferred_context|avoid_topic|constraint|background|other}",
+        "confidence": 0.8,
+        "source": "{session_id_or_learner_correction}",
+        "created_at": "{YYYY-MM-DD}",
+        "last_seen": "{YYYY-MM-DD}",
+        "status": "active",
+        "sensitivity": "normal"
+      }
+    ],
+    "profile": {
+      "interests": [],
+      "hobbies": [],
+      "lifestyle": [],
+      "preferred_contexts": [],
+      "conversation_preferences": [],
+      "avoid_topics": [],
+      "goals_context": [],
+      "constraints": [],
+      "background": [],
+      "other": []
+    },
+    "last_internalized_at": null
   }
 }

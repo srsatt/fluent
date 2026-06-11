@@ -20,7 +20,12 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from fluent_paths import force_utf8_io, sqlite_db_path  # noqa: E402
-from fluent_storage import load_documents  # noqa: E402
+from fluent_storage import load_documents, save_documents  # noqa: E402
+from profile_personalization import (  # noqa: E402
+    add_profile_fact,
+    ensure_personalization,
+    internalize_profile,
+)
 
 force_utf8_io()
 
@@ -218,6 +223,86 @@ def score_to_quality(score: float | int) -> int:
     return max(0, min(5, value))
 
 
+def get_user_profile(arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+    arguments = arguments or {}
+    databases, missing, backend = load_documents()
+    if missing:
+        raise FileNotFoundError(", ".join(missing))
+
+    profile = databases.get("learner_profile", {})
+    personalization = ensure_personalization(profile)
+    result = {
+        "learner": profile.get("learner", {}),
+        "preferences": profile.get("preferences", {}),
+        "focus_areas": profile.get("focus_areas", []),
+        "personalization": {
+            "profile": personalization.get("profile", {}),
+            "fact_count": len(personalization.get("facts", [])),
+            "last_internalized_at": personalization.get("last_internalized_at"),
+        },
+        "computed": {
+            "storage_backend": backend,
+            "sqlite_path": str(sqlite_db_path()) if backend == "sql" else None,
+        },
+    }
+    if arguments.get("include_facts"):
+        active_only = arguments.get("active_only", True)
+        facts = personalization.get("facts", [])
+        if active_only:
+            facts = [fact for fact in facts if fact.get("status", "active") == "active"]
+        result["personalization"]["facts"] = facts
+    return result
+
+
+def persist_profile_fact(arguments: dict[str, Any]) -> dict[str, Any]:
+    databases, missing, backend = load_documents()
+    if missing:
+        raise FileNotFoundError(", ".join(missing))
+
+    profile = databases.get("learner_profile", {})
+    fact_input = dict(arguments)
+    fact = add_profile_fact(profile, fact_input, default_source="fluent_persist_profile_fact")
+    save_documents(databases)
+    personalization = ensure_personalization(profile)
+    return {
+        "fact": fact,
+        "fact_count": len(personalization.get("facts", [])),
+        "backend": backend,
+        "sqlite_path": str(sqlite_db_path()) if backend == "sql" else None,
+    }
+
+
+def internalize_user_profile(arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+    arguments = arguments or {}
+    databases, missing, backend = load_documents()
+    if missing:
+        raise FileNotFoundError(", ".join(missing))
+
+    profile = databases.get("learner_profile", {})
+    fact_ids = arguments.get("fact_ids")
+    if fact_ids is not None and not isinstance(fact_ids, list):
+        raise ValueError("fact_ids must be an array when provided")
+    synthesized = arguments.get("profile")
+    if synthesized is not None and not isinstance(synthesized, dict):
+        raise ValueError("profile must be an object when provided")
+
+    personalization = internalize_profile(
+        profile,
+        synthesized_profile=synthesized,
+        fact_ids=fact_ids,
+    )
+    save_documents(databases)
+    return {
+        "personalization": {
+            "profile": personalization.get("profile", {}),
+            "fact_count": len(personalization.get("facts", [])),
+            "last_internalized_at": personalization.get("last_internalized_at"),
+        },
+        "backend": backend,
+        "sqlite_path": str(sqlite_db_path()) if backend == "sql" else None,
+    }
+
+
 TOOLS: list[dict[str, Any]] = [
     {
         "name": "fluent_read_state",
@@ -280,6 +365,95 @@ TOOLS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "fluent_get_user_profile",
+        "description": "Read compact learner profile and personalization data used to shape dialogs around durable user interests, lifestyle, hobbies, and preferences.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "include_facts": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "Include raw profile facts in addition to the compact internalized profile.",
+                },
+                "active_only": {
+                    "type": "boolean",
+                    "default": True,
+                    "description": "When include_facts is true, return only facts with status active.",
+                },
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "fluent_persist_profile_fact",
+        "description": "Persist one explicit durable personalization fact about the learner, such as an interest, hobby, lifestyle detail, constraint, or topic preference.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "description": "The factual statement to remember. Store explicit or strongly implied durable facts only.",
+                },
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "avoid_topic",
+                        "background",
+                        "constraint",
+                        "conversation_preference",
+                        "goal_context",
+                        "hobby",
+                        "interest",
+                        "lifestyle",
+                        "other",
+                        "preferred_context",
+                    ],
+                    "default": "other",
+                },
+                "confidence": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 0.8,
+                },
+                "source": {
+                    "type": "string",
+                    "description": "Where the fact came from, for example session-003 or learner-correction.",
+                },
+                "evidence": {
+                    "type": "string",
+                    "description": "Optional short phrase from the interaction that supports the fact.",
+                },
+                "sensitivity": {
+                    "type": "string",
+                    "enum": ["normal", "sensitive"],
+                    "default": "normal",
+                },
+            },
+            "required": ["text"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "fluent_internalize_profile",
+        "description": "Refresh the compact tutor-facing personalization profile from stored facts. Rare use: call after several new facts, or pass an agent-synthesized profile object.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "fact_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional subset of fact ids to internalize. Omit to use all active facts.",
+                },
+                "profile": {
+                    "type": "object",
+                    "description": "Optional synthesized profile object. If omitted, the server groups active facts by category deterministically.",
+                },
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "fluent_score_to_quality",
         "description": "Map a 0-10 answer score to SM-2 review quality 0-5 using floor(score / 2), clamped to 0..5.",
         "inputSchema": {
@@ -318,6 +492,12 @@ def call_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("fluent_update_session requires a session object")
         update_db = _load_update_module()
         return _content(update_db.apply_session_update(session))
+    if name == "fluent_get_user_profile":
+        return _content(get_user_profile(arguments))
+    if name == "fluent_persist_profile_fact":
+        return _content(persist_profile_fact(arguments))
+    if name == "fluent_internalize_profile":
+        return _content(internalize_user_profile(arguments))
     if name == "fluent_score_to_quality":
         return _content({"score": arguments.get("score"), "quality": score_to_quality(arguments["score"])})
     raise ValueError(f"Unknown tool: {name}")

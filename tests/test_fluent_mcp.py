@@ -54,6 +54,9 @@ class FluentMcpTest(unittest.TestCase):
         tools = {tool["name"] for tool in responses[1]["result"]["tools"]}
         self.assertIn("fluent_read_state", tools)
         self.assertIn("fluent_update_session", tools)
+        self.assertIn("fluent_get_user_profile", tools)
+        self.assertIn("fluent_persist_profile_fact", tools)
+        self.assertIn("fluent_internalize_profile", tools)
         self.assertIn("fluent_score_to_quality", tools)
         self.assertEqual(responses[2]["result"]["structuredContent"]["quality"], 4)
 
@@ -115,6 +118,56 @@ class FluentMcpTest(unittest.TestCase):
         self.assertEqual(len(state["databases"]["session_log"]["sessions"]), 1)
         self.assertEqual(state["databases"]["session_log"]["sessions"][0]["session_id"], "session-003")
         self.assertEqual(state["databases"]["session_log"]["sessions_omitted"], 2)
+
+    def test_profile_fact_tools(self):
+        responses = self._request([
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "fluent_persist_profile_fact",
+                    "arguments": {
+                        "text": "The learner likes bureaucracy scenarios for citizenship practice.",
+                        "category": "preferred_context",
+                        "confidence": 0.9,
+                        "source": "test",
+                    },
+                },
+            },
+            {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {"name": "fluent_internalize_profile", "arguments": {}},
+            },
+            {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/call",
+                "params": {
+                    "name": "fluent_get_user_profile",
+                    "arguments": {"include_facts": True},
+                },
+            },
+        ])
+        stored = responses[0]["result"]["structuredContent"]
+        self.assertEqual(stored["fact"]["category"], "preferred_context")
+        self.assertEqual(stored["fact_count"], 1)
+
+        internalized = responses[1]["result"]["structuredContent"]
+        self.assertIn(
+            "The learner likes bureaucracy scenarios for citizenship practice.",
+            internalized["personalization"]["profile"]["preferred_contexts"],
+        )
+
+        profile = responses[2]["result"]["structuredContent"]
+        self.assertEqual(profile["personalization"]["fact_count"], 1)
+        self.assertEqual(len(profile["personalization"]["facts"]), 1)
+        self.assertIn(
+            "The learner likes bureaucracy scenarios for citizenship practice.",
+            profile["personalization"]["profile"]["preferred_contexts"],
+        )
 
 
 if __name__ == "__main__":

@@ -89,7 +89,7 @@ Set `db=json` to use the legacy JSON-file backend. Both backends expose the same
 
 | File | Purpose |
 |------|---------|
-| `learner-profile.json` | profile, goals, preferences, streak |
+| `learner-profile.json` | profile, goals, preferences, streak, personalization facts |
 | `progress-db.json` | stats and trends |
 | `mistakes-db.json` | recurring error patterns |
 | `mastery-db.json` | mastery levels |
@@ -101,6 +101,9 @@ Agents should not hand-edit these during lessons. Prefer MCP tools:
 ```text
 fluent_read_state
 fluent_update_session
+fluent_get_user_profile
+fluent_persist_profile_fact
+fluent_internalize_profile
 fluent_score_to_quality
 ```
 

@@ -23,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fluent_paths import ensure_data_dir, ensure_backups_dir, force_utf8_io, sqlite_db_path  # noqa: E402
 from fluent_storage import load_documents, save_documents, storage_files_for_backup  # noqa: E402
+from profile_personalization import add_profile_fact, ensure_personalization  # noqa: E402
 
 force_utf8_io()
 DATA_DIR = ensure_data_dir()
@@ -159,6 +160,17 @@ def update_learner_profile(profile: dict, session: dict):
             "earned_date": today,
             "description": ms,
         })
+
+    for fact in session.get("profile_facts", []):
+        if isinstance(fact, dict):
+            add_profile_fact(
+                profile,
+                fact,
+                default_source=session["session_id"],
+                created_at=today,
+            )
+
+    ensure_personalization(profile)
 
 
 def update_progress_db(progress: dict, session: dict):
